@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Doom: Ecología Táctica - Definitivo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            background: #080808;
+            color: #c0c0c0;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            border: 3px solid #333;
+            background: #000;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.9);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #121212;
+            cursor: crosshair;
+            outline: none;
+        }
+
+        #hud-panel {
+            width: 100%;
+            max-width: 800px;
+            background: #161616;
+            border-top: 3px solid #333;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            font-size: clamp(9px, 2vw, 12px);
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #dcdcdc;
+            gap: 4px;
+        }
+
+        .hud-item span {
+            color: #ff3333;
+        }
+
+        /* Controles táctiles en pantalla para móviles */
+        #mobile-controls {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            background: #111;
+            padding: 12px;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 2px solid #222;
+        }
+
+        .d-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 50px);
+            grid-template-rows: repeat(2, 50px);
+            gap: 6px;
+        }
+
+        .control-btn {
+            background: #222;
+            color: #fff;
+            border: 2px solid #444;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .control-btn:active {
+            background: #555;
+            border-color: #ff3333;
+        }
+
+        #btn-up { grid-column: 2; grid-row: 1; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-down { grid-column: 2; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+
+        .action-pad {
+            display: flex;
+            gap: 10px;
+        }
+
+        .fire-btn {
+            background: #7a1c1c;
+            color: #fff;
+            border: 2px solid #a02020;
+            padding: 15px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .fire-btn:active {
+            background: #a02020;
+        }
+
+        /* Modales */
+        #name-modal, #quiz-modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 5, 5, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 15px;
+        }
+
+        #quiz-modal {
+            display: none;
+        }
+
+        .modal-container {
+            background: #141414;
+            border: 3px solid #7a1c1c;
+            width: 100%;
+            max-width: 600px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: inset 0 0 15px rgba(255,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-container h2 {
+            color: #ff5555;
+            margin-top: 0;
+            font-size: 20px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px;
+            background: #000;
+            border: 2px solid #444;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            margin: 12px 0;
+            text-align: center;
+        }
+
+        .platform-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .platform-btn {
+            flex: 1;
+            background: #1a1a1a;
+            color: #aaa;
+            border: 2px solid #444;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: 0.2s;
+        }
+
+        .platform-btn.selected {
+            background: #7a1c1c;
+            color: #fff;
+            border-color: #ff3333;
+        }
+
+        .modal-btn {
+            background: #7a1c1c;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 5px;
+        }
+        .modal-btn:hover {
+            background: #9e2727;
+        }
+
+        .quiz-header {
+            background: #7a1c1c;
+            color: #fff;
+            padding: 6px 10px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #timer-display {
+            color: #ffff00;
+        }
+
+        .quiz-question {
+            font-size: 13px;
+            line-height: 1.4;
+            color: #f0f0f0;
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .option-btn {
+            display: block;
+            width: 100%;
+            background: #1a1a1a;
+            color: #dcdcdc;
+            border: 2px solid #333;
+            padding: 8px 10px;
+            margin: 4px 0;
+            text-align: left;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            transition: 0.1s;
+        }
+
+        .option-btn:hover {
+            background: #2a2a2a;
+            border-color: #a02020;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-wrapper">
+        <canvas id="gameCanvas" width="800" height="400" tabindex="0"></canvas>
+        
+        <!-- Modal Ingreso de Nombre y Dispositivo -->
+        <div id="name-modal">
+            <div class="modal-container" style="max-width: 500px;">
+                <h2>DOOM: ECOLOGÍA TÁCTICA</h2>
+                <p style="font-size: 13px; color: #aaa;">Introduce tu nombre de cadete:</p>
+                <input type="text" id="player-name-input" class="modal-input" placeholder="Nombre" maxlength="15" autocomplete="off">
+                
+                <p style="font-size: 13px; color: #aaa; margin-top: 15px;">Selecciona tu dispositivo:</p>
+                <div class="platform-selector">
+                    <button class="platform-btn selected" id="btn-pc" type="button">Computadora</button>
+                    <button class="platform-btn" id="btn-mobile" type="button">Teléfono</button>
+                </div>
+
+                <button class="modal-btn" id="start-game-btn">INICIAR MISIÓN</button>
+            </div>
+        </div>
+
+        <!-- Modal de Evaluaciones Ecológicas (15s) -->
+        <div id="quiz-modal">
+            <div class="modal-container">
+                <div class="quiz-header">
+                    <span>EVALUACIÓN ECOLÓGICA (SUTTON & HARMON)</span>
+                    <span>TIEMPO: <span id="timer-display">15</span>s</span>
+                </div>
+                <div id="quiz-question" class="quiz-question">Cargando pregunta...</div>
+                <div id="quiz-options"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="hud-panel">
+        <div class="hud-item">Cadete: <span id="hud-name">-</span></div>
+        <div class="hud-item">Modo: <span id="hud-mode">PC</span></div>
+        <div class="hud-item">Puntos: <span id="hud-points">0</span></div>
+        <div class="hud-item">Nivel: <span id="hud-level">1</span></div>
+        <div class="hud-item">Bajas: <span id="hud-score">0/5</span></div>
+        <div class="hud-item">Correctas: <span id="hud-correct">0</span></div>
+        <div class="hud-item">Errores: <span id="hud-errors">0</span></div>
+        <div class="hud-item">Reinicios: <span id="hud-resets">0</span></div>
+        <div class="hud-item">Munición: <span id="hud-ammo">5/5</span></div>
+        <div class="hud-item">Salud: <span id="hud-health">100%</span></div>
+    </div>
+
+    <!-- Controles táctiles flotantes para teléfono -->
+    <div id="mobile-controls">
+        <div class="d-pad">
+            <button class="control-btn" id="btn-up">↑</button>
+            <button class="control-btn" id="btn-left">←</button>
+            <button class="control-btn" id="btn-down">↓</button>
+            <button class="control-btn" id="btn-right">→</button>
+        </div>
+        <div class="action-pad">
+            <button class="fire-btn" id="btn-fire">FUEGO</button>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+
+            let playerName = "Cadete";
+            let selectedPlatform = "pc";
+            let points = 0;
+            let level = 1;
+            let score = 0; 
+            let correctAnswers = 0;
+            let errorCount = 0;
+            let resetCount = 0;
+            let ammo = 5;
+            let health = 100;
+            let gameStarted = false;
+            let isPaused = false;
+            let quizTimer = 15;
+            let timerInterval = null;
+
+            let player = { x: 400, y: 200, size: 12, speed: 4 };
+
+            const btnPc = document.getElementById('btn-pc');
+            const btnMobile = document.getElementById('btn-mobile');
+
+            btnPc.addEventListener('click', () => {
+                selectedPlatform = 'pc';
+                btnPc.classList.add('selected');
+                btnMobile.classList.remove('selected');
+            });
+
+            btnMobile.addEventListener('click', () => {
+                selectedPlatform = 'mobile';
+                btnMobile.classList.add('selected');
+                btnPc.classList.remove('selected');
+            });
+
+            document.getElementById('start-game-btn').addEventListener('click', startGame);
+            document.getElementById('player-name-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') startGame();
+            });
+
+            function startGame() {
+                const inputVal = document.getElementById('player-name-input').value.trim();
+                if (inputVal !== "") {
+                    playerName = inputVal;
+                }
+                document.getElementById('hud-name').innerText = playerName;
+                document.getElementById('hud-mode').innerText = selectedPlatform === 'mobile' ? 'MÓVIL' : 'PC';
+                
+                if (selectedPlatform === 'mobile') {
+                    document.getElementById('mobile-controls').style.display = 'flex';
+                } else {
+                    document.getElementById('mobile-controls').style.display = 'none';
+                }
+
+                document.getElementById('name-modal').style.display = 'none';
+                gameStarted = true;
+                medkitSpawnTimer = Date.now();
+                canvas.focus();
+                loop();
+            }
+
+            let keys = {};
+            window.addEventListener('keydown', e => {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                    e.preventDefault();
+                }
+                keys[e.code] = true;
+                keys[e.key.toLowerCase()] = true;
+            });
+            window.addEventListener('keyup', e => {
+                keys[e.code] = false;
+                keys[e.key.toLowerCase()] = false;
+            });
+
+            function setupTouchControl(btnId, codeKey, charKey) {
+                const btn = document.getElementById(btnId);
+                if (!btn) return;
+
+                ['touchstart', 'mousedown'].forEach(evt => {
+                    btn.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        keys[codeKey] = true;
+                        keys[charKey] = true;
+                    });
+                });
+
+                ['touchend', 'mouseup', 'mouseleave'].forEach(evt => {
+                    btn.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        keys[codeKey] = false;
+                        keys[charKey] = false;
+                    });
+                });
+            }
+
+            setupTouchControl('btn-up', 'ArrowUp', 'w');
+            setupTouchControl('btn-down', 'ArrowDown', 's');
+            setupTouchControl('btn-left', 'ArrowLeft', 'a');
+            setupTouchControl('btn-right', 'ArrowRight', 'd');
+
+            const fireBtn = document.getElementById('btn-fire');
+            if (fireBtn) {
+                ['touchstart', 'click'].forEach(evt => {
+                    fireBtn.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        if (!gameStarted || isPaused) return;
+                        if (enemies.length > 0) {
+                            handleShoot(enemies[0].x, enemies[0].y);
+                        } else {
+                            handleShoot(player.x + 100, player.y);
+                        }
+                    });
+                });
+            }
+
+            canvas.addEventListener('click', (e) => {
+                if (!gameStarted || isPaused || selectedPlatform === 'mobile') return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const targetX = (e.clientX - rect.left) * scaleX;
+                const targetY = (e.clientY - rect.top) * scaleY;
+                handleShoot(targetX, targetY);
+            });
+
+            function handleShoot(tx, ty) {
+                if (ammo > 0) {
+                    ammo--;
+                    fireBullet(tx, ty);
+                } else {
+                    triggerQuiz(); 
+                }
+            }
+
+            let activeMedkit = null;
+            let medkitSpawnTimer = Date.now();
+            let medkitMoveTimer = 0;
+
+            function spawnMedkit() {
+                activeMedkit = {
+                    x: Math.random() * (canvas.width - 80) + 40,
+                    y: Math.random() * (canvas.height - 80) + 40
+                };
+                medkitMoveTimer = Date.now();
+            }
+
+            const questionBank = [
+                { q: "1. ¿Qué forma tiene la curva en un gráfico que muestra el crecimiento rápido y acelerado de la población humana?", options: ["a) Una línea recta hacia abajo", "b) Una curva en forma de 'J'", "c) Un círculo perfecto", "d) Una letra 'U' invertida"], correct: 1 },
+                { q: "2. ¿Cómo se le llama a la energía que utiliza el ser humano únicamente para mantener su cuerpo vivo y funcional?", options: ["a) Energía externa", "b) Energía eléctrica", "c) Energía interna", "d) Energía solar"], correct: 2 },
+                { q: "3. ¿Qué nombre recibe la energía que consumen los humanos fuera de su cuerpo (en máquinas, fábricas, autos y electricidad)?", options: ["a) Energía interna", "b) Energía externa", "c) Energía biológica", "d) Energía muscular"], correct: 1 },
+                { q: "4. ¿Cuál ha sido el principal motor o combustible que ha disparado el uso de la energía externa en las sociedades modernas?", options: ["a) La fuerza de los animales", "b) Los combustibles fósiles (carbón, petróleo y gas)", "c) El calor de los volcanes", "d) El agua de lluvia"], correct: 1 },
+                { q: "5. ¿Qué fenómeno histórico ayudó a reducir la mortalidad y provocó que la población humana creciera de forma masiva?", options: ["a) Las revoluciones industriales y los avances en medicina", "b) La prohibición de la agricultura", "c) La reducción total del uso de herramientas", "d) El aumento de las cavernas naturales"], correct: 0 },
+                { q: "6. ¿Qué estudia el modelo de 'transición demográfica'?", options: ["a) Cómo migran los animales en invierno", "b) Cómo cambian las tasas de natalidad y mortalidad a medida que una sociedad se moderniza", "c) El movimiento de los ríos hacia el mar", "d) Cómo se forman las nubes de contaminación"], correct: 1 },
+                { q: "7. ¿Qué diferencia principal existe entre el consumo de un ser humano primitivo y un humano tecnológico moderno?", options: ["a) El humano moderno consume muchísima más energía externa.", "b) El humano primitivo comía más plásticos.", "c) El humano moderno ya no necesita energía interna.", "d) No hay ninguna diferencia."], correct: 0 },
+                { q: "8. ¿Qué sucede con la tasa de mortalidad infantil cuando un país mejora sus condiciones de salud y saneamiento?", options: ["a) Aumenta rápidamente", "b) Desciende de forma drástica", "c) Se vuelve inestable", "d) Desaparece la población"], correct: 1 },
+                { q: "9. ¿Qué consecuencia ambiental genera el uso masivo y constante de energía externa en el planeta?", options: ["a) Un enfriamiento total de la atmósfera", "b) La creación de energía infinita", "c) La disipación de calor residual y contaminación", "d) La purificación instantánea del agua"], correct: 2 },
+                { q: "10. ¿Por qué se dice que el impacto de un ser humano actual es mucho mayor que el de cualquier otro animal?", options: ["a) Porque gasta grandes cantidades de recursos y energía ajenos a su propio cuerpo", "b) Porque los animales no respiran oxígeno", "c) Porque los humanos viven bajo el agua", "d) Porque los animales producen más basura tecnológica"], correct: 0 },
+                { q: "11. ¿Cómo se define un ecosistema?", options: ["a) Únicamente un grupo de animales sin plantas", "b) La interacción entre los seres vivos y su ambiente físico inanimado", "c) Una sola roca en medio de un desierto", "d) Una fábrica abandonada"], correct: 1 },
+                { q: "12. ¿Qué son los componentes bióticos de un ecosistema?", options: ["a) El clima, el suelo y la temperatura", "b) Los organismos vivos (plantas, animales, bacterias)", "c) La luz solar y el agua", "d) Las piedras y el viento"], correct: 1 },
+                { q: "13. ¿Qué son los componentes abióticos de un ecosistema?", options: ["a) Los animales carnívoros", "b) Los elementos no vivos como la luz, el agua, el suelo y el clima", "c) Los árboles de un bosque", "d) Los insectos polinizadores"], correct: 1 },
+                { q: "14. ¿Qué labor realizan los organismos reductores (como bacterias y hongos)?", options: ["a) Descomponen la materia muerta y devuelven los nutrientes al suelo", "b) Fabrican su propia comida con los rayos de la luna", "c) Se comen únicamente a los animales vivos más grandes", "d) Bloquean el paso de la energía solar"], correct: 0 },
+                { q: "15. ¿Qué dice la regla general sobre la energía cuando pasa de un nivel trófico a otro?", options: ["a) Que se multiplica por mil", "b) Que se pierde la mayor parte y solo pasa una pequeña porción (aprox. el 10%)", "c) Que se mantiene exactamente igual en todos los niveles", "d) Que regresa al sol"], correct: 1 },
+                { q: "16. ¿Por qué las cadenas alimenticias son cortas (de 4 o 5 niveles máximo)?", options: ["a) Porque los animales se cansan de cazar", "b) Porque se pierde tanta energía en el camino que ya no alcanza para alimentar a más niveles", "c) Porque el sol se apaga por las noches", "d) Porque los herbívoros son muy pequeños"], correct: 1 },
+                { q: "17. ¿Qué es la sucesión ecológica?", options: ["a) El cambio ordenado y progresivo de las comunidades naturales a través del tiempo", "b) La compra y venta de terrenos en una ciudad", "c) La migración diaria de las aves", "d) La contaminación repentina de un río"], correct: 0 },
+                { q: "18. ¿Cómo es una comunidad pionera o inmadura (como los primeros pastos en un suelo dañado)?", options: ["a) Tiene baja estabilidad y crece muy rápido", "b) Es un bosque milenario imposible de destruir", "c) No necesita luz solar", "d) Está compuesta solo por animales grandes"], correct: 0 },
+                { q: "19. ¿Qué caracteriza a una comunidad clímax o madura (como un bosque tropical)?", options: ["a) Alta estabilidad y un reciclaje de nutrientes muy eficiente", "b) Falta total de plantas", "c) Un crecimiento rápido y desordenado", "d) Dependencia de la basura humana"], correct: 0 },
+                { q: "20. ¿Por qué un ecosistema con alta biodiversidad es más resistente (estable)?", options: ["a) Porque tiene muchas rutas y opciones diferentes para sobrevivir si una especie falla", "b) Porque las plantas no necesitan agua", "c) Porque los animales comparten la misma comida", "d) Porque no les afecta el clima"], correct: 0 },
+                { q: "21. ¿Qué es la magnificación biológica?", options: ["a) Ver animales con un microscopio gigante", "b) La acumulación de sustancias tóxicas que aumentan su concentración conforme sube la cadena alimenticia", "c) El crecimiento exagerado de una planta", "d) El aumento de la luz del sol en verano"], correct: 1 },
+                { q: "22. ¿Cómo clasifica la ecología a los ecosistemas según la intervención del ser humano?", options: ["a) Naturales, productivos (agrícolas) y urbanos", "b) Buenos, malos y regulares", "c) Acuáticos, terrestres y aéreos", "d) Pequeños, medianos y grandes"], correct: 0 },
+                { q: "23. ¿Qué caracteriza principalmente a un ecosistema natural?", options: ["a) Funciona con energía solar directa y se autorregula solo", "b) Necesita tractores y gasolina para sobrevivir", "c) Está lleno de edificios y carreteras", "d) Es creado por los seres humanos"], correct: 0 },
+                { q: "24. ¿Qué es un ecosistema productivo o agrícola (un monocultivo)?", options: ["a) Un bosque salvaje sin tocar", "b) Un sistema simplificado para producir comida que depende de ayuda externa y químicos", "c) Una ciudad altamente poblada", "d) Un lago profundo sin peces"], correct: 1 },
+                { q: "25. ¿Por qué los campos de cultivo modernos (monocultivos) necesitan fertilizantes y pesticidas?", options: ["a) Porque son ecosistemas artificiales e inestables que la naturaleza intenta invadir o desequilibrar", "b) Porque las plantas se sienten tristes sin ellos", "c) Porque el agua de lluvia es de mala calidad", "d) Porque no hay suficiente gravedad"], correct: 0 },
+                { q: "26. ¿Cómo se define un ecosistema urbano (una ciudad)?", options: ["a) Un sistema cerrado que recicla toda su propia basura", "b) Un sistema abierto que importa recursos de otros lados y expulsa calor y desechos", "c) Un bosque lleno de árboles frutales", "d) Una granja autosuficiente"], correct: 1 },
+                { q: "27. ¿Por qué se dice que las ciudades funcionan como 'agujeros negros' de recursos?", options: ["a) Porque tragan comida, agua y energía de otras regiones lejanas", "b) Porque flotan en el espacio", "c) Porque absorben toda la luz del sol", "d) Porque no generan ningún tipo de ruido"], correct: 0 },
+                { q: "28. ¿Qué expulsan inevitablemente las ciudades al ambiente además de basura sólida?", options: ["a) Oxígeno puro", "b) Calor residual y contaminantes", "c) Agua purificada para los ríos", "d) Semillas de flores silvestres"], correct: 1 },
+                { q: "29. ¿Qué ley de la física explica que la energía que usamos en las ciudades termina convertida en calor inútil?", options: ["a) La ley de la gravedad", "b) La segunda ley de la termodinámica", "c) La ley del movimiento de los planetas", "d) La ley de la palanca"], correct: 1 },
+                { q: "30. ¿Qué le pasa a un ecosistema agrícola si de repente se le quitan los combustibles, la maquinaria y los químicos?", options: ["a) Produce el doble de alimentos", "b) Entra en crisis y colapsa porque no puede sostenerse solo", "c) Se convierte automáticamente en un bosque perfecto", "d) El clima mejora de inmediato"], correct: 1 },
+                { q: "31. ¿Qué problema principal causa el mal manejo de la agricultura intensiva en los suelos?", options: ["a) La erosión y la pérdida de nutrientes", "b) La creación de oro en la tierra", "c) El aumento de bosques nativos", "d) La purificación del subsuelo"], correct: 0 },
+                { q: "32. ¿Cuál es una ventaja de los ecosistemas naturales frente a las ciudades o granjas humanas?", options: ["a) Reciclan sus propios desechos de forma natural y eficiente", "b) Gastan más petróleo que cualquier fábrica", "c) Necesitan murallas para protegerse", "d) Requieren mantenimiento diario de humanos"], correct: 0 },
+                { q: "33. ¿Qué son los subsidios energéticos en la agricultura moderna?", options: ["a) La ayuda económica que da el gobierno a los niños", "b) La energía extra que se le inyecta al campo en forma de tractores, gasolina y abonos", "c) La luz del sol directa", "d) El agua de la lluvia natural"], correct: 1 },
+                { q: "34. ¿Por qué un bosque natural resiste mejor una plaga que un campo sembrado con una sola clase de planta?", options: ["a) Porque el bosque tiene variedad de especies que frenan la plaga, mientras el cultivo es uniforme y vulnerable", "b) Porque los árboles del bosque corren más rápido", "c) Porque el bosque usa plaguicidas químicos", "d) Porque el suelo del bosque es de cemento"], correct: 0 },
+                { q: "35. ¿Qué recurso es el más presionado y consumido por el modelo de los ecosistemas urbanos actuales?", options: ["a) Los combustibles fósiles y el agua limpia", "b) Las piedras de los ríos", "c) La arena del desierto sin usar", "d) La luz de las estrellas"], correct: 0 },
+                { q: "36. ¿Qué ocurre con la estabilidad general de la Tierra si los ecosistemas naturales son reemplazados masivamente por ciudades y granjas?", options: ["a) Se vuelve más frágil y vulnerable a crisis ambientales", "b) Se vuelve indestructible", "c) El clima se congela para siempre", "d) No le pasa absolutamente nada"], correct: 0 },
+                { q: "37. ¿Cuál es el destino final de los materiales y la energía que entran a una ciudad moderna?", options: ["a) Se transforman en productos útiles y luego en basura y calor", "b) Se quedan guardados para siempre en las tiendas", "c) Desaparecen mágicamente en el aire", "d) Regresan intactos a la naturaleza"], correct: 0 },
+                { q: "38. ¿Qué significa que una ciudad sea un sistema 'heterotrófico'?", options: ["a) Que no puede producir su propio alimento ni energía y necesita importarlos de fuera", "b) Que produce su propia comida con energía solar", "c) Que vive debajo del agua", "d) Que no produce ningún tipo de residuo"], correct: 0 },
+                { q: "39. ¿Por qué la agricultura tradicional o de subsistencia es diferente a la agrícola industrial?", options: ["a) La industrial usa muchísima más energía externa y químicos, mientras la tradicional usa fuerza humana o animal", "b) La tradicional usa energía nuclear", "c) La industrial no produce ningún alimento", "d) No hay ninguna diferencia en su funcionamiento"], correct: 0 },
+                { q: "40. ¿Cuál es el mayor reto ecológico que enfrentan los ecosistemas humanos (ciudades e industrias) hoy en día?", options: ["a) Aprender a vivir sin alterar los límites y ciclos de la naturaleza que los sostienen", "b) Pintar todos los edificios de color verde", "c) Apagar la luz una vez al año", "d) Dejar de usar computadoras"], correct: 0 }
+            ];
+
+            let enemies = [];
+            let bullets = [];
+
+            function spawnEnemy() {
+                let side = Math.floor(Math.random() * 4);
+                let x, y;
+                if (side === 0) { x = Math.random() * canvas.width; y = -20; }
+                else if (side === 1) { x = Math.random() * canvas.width; y = canvas.height + 20; }
+                else if (side === 2) { x = -20; y = Math.random() * canvas.height; }
+                else { x = canvas.width + 20; y = Math.random() * canvas.height; }
+
+                let enemySpeed, enemyHP;
+
+                if (selectedPlatform === 'mobile') {
+                    enemySpeed = 1.6 + (level * 0.65);
+                    enemyHP = Math.floor(1 + (level - 1) * 0.8);
+                } else {
+                    enemySpeed = 1.2 + (level * 0.35);
+                    enemyHP = Math.floor(1 + (level - 1) * 0.4);
+                }
+
+                enemies.push({ x: x, y: y, size: 11, speed: enemySpeed, hp: enemyHP, maxHp: enemyHP });
+            }
+
+            setInterval(() => {
+                if (!gameStarted || isPaused) return;
+                let maxEnemies = selectedPlatform === 'mobile' ? 5 + level : 4 + level;
+                if (enemies.length < maxEnemies) {
+                    spawnEnemy();
+                }
+            }, selectedPlatform === 'mobile' ? 1200 : 1500);
+
+            function fireBullet(tx, ty) {
+                let dx = tx - player.x;
+                let dy = ty - player.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist === 0) dist = 1;
+                
+                bullets.push({
+                    x: player.x,
+                    y: player.y,
+                    vx: (dx / dist) * 11,
+                    vy: (dy / dist) * 11
+                });
+            }
+
+            function triggerQuiz() {
+                isPaused = true;
+                quizTimer = 15;
+                const timerEl = document.getElementById('timer-display');
+                if(timerEl) timerEl.innerText = quizTimer;
+                document.getElementById('quiz-modal').style.display = 'flex';
+                
+                let qObj = questionBank[Math.floor(Math.random() * questionBank.length)];
+                document.getElementById('quiz-question').innerText = qObj.q;
+                let optionsDiv = document.getElementById('quiz-options');
+                optionsDiv.innerHTML = '';
+
+                clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    quizTimer--;
+                    if(timerEl) timerEl.innerText = quizTimer;
+                    if (quizTimer <= 0) {
+                        clearInterval(timerInterval);
+                        errorCount++;
+                        resetCount++;
+                        alert('¡Tiempo agotado (15s)! Fallo en la evaluación. Reiniciando nivel...');
+                        document.getElementById('quiz-modal').style.display = 'none';
+                        resetLevel();
+                    }
+                }, 1000);
+
+                qObj.options.forEach((opt, index) => {
+                    let btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.innerText = opt;
+                    btn.onclick = () => {
+                        clearInterval(timerInterval);
+                        if (index === qObj.correct) {
+                            document.getElementById('quiz-modal').style.display = 'none';
+                            ammo = 5;
+                            score = 0; 
+                            correctAnswers++;
+                            points += 200 * level;
+                            isPaused = false;
+                            level++;
+                        } else {
+                            errorCount++;
+                            resetCount++;
+                            alert('¡Respuesta incorrecta! Reiniciando nivel...');
+                            document.getElementById('quiz-modal').style.display = 'none';
+                            resetLevel();
+                        }
+                    };
+                    optionsDiv.appendChild(btn);
+                });
+            }
+
+            function resetLevel() {
+                score = 0;
+                ammo = 5;
+                health = 100;
+                enemies = [];
+                bullets = [];
+                activeMedkit = null;
+                medkitSpawnTimer = Date.now();
+                
+                // Reposiciona al jugador en el centro exacto para evitar bloqueos en los bordes
+                player.x = canvas.width / 2;
+                player.y = canvas.height / 2;
+
+                isPaused = false;
+            }
+
+            function update() {
+                if (!gameStarted || isPaused) return;
+
+                let now = Date.now();
+                if (!activeMedkit) {
+                    if (now - medkitSpawnTimer > 15000) {
+                        spawnMedkit();
+                    }
+                } else {
+                    if (now - medkitMoveTimer > 2000) {
+                        spawnMedkit();
+                    }
+                }
+
+                let moveX = 0, moveY = 0;
+                if (keys['KeyW'] || keys['ArrowUp'] || keys['w'] || keys['arrowup']) moveY -= player.speed;
+                if (keys['KeyS'] || keys['ArrowDown'] || keys['s'] || keys['arrowdown']) moveY += player.speed;
+                if (keys['KeyA'] || keys['ArrowLeft'] || keys['a'] || keys['arrowleft']) moveX -= player.speed;
+                if (keys['KeyD'] || keys['ArrowRight'] || keys['d'] || keys['arrowright']) moveX += player.speed;
+
+                player.x += moveX;
+                player.y += moveY;
+
+                player.x = Math.max(15, Math.min(canvas.width - 15, player.x));
+                player.y = Math.max(15, Math.min(canvas.height - 15, player.y));
+
+                if (activeMedkit && Math.hypot(player.x - activeMedkit.x, player.y - activeMedkit.y) < 22) {
+                    health = Math.min(100, health + 40);
+                    points += 50;
+                    activeMedkit = null;
+                    medkitSpawnTimer = Date.now();
+                }
+
+                bullets.forEach((b, index) => {
+                    b.x += b.vx;
+                    b.y += b.vy;
+
+                    enemies.forEach((e, eIndex) => {
+                        let dx = e.x - b.x;
+                        let dy = e.y - b.y;
+                        if (Math.sqrt(dx*dx + dy*dy) < e.size + 4) {
+                            bullets.splice(index, 1);
+                            e.hp--;
+
+                            if (e.hp <= 0) {
+                                enemies.splice(eIndex, 1);
+                                score++;
+                                points += 15 * level;
+
+                                if (score >= 5) {
+                                    triggerQuiz();
+                                }
+                            }
+                        }
+                    });
+                });
+
+                enemies.forEach((e) => {
+                    let dx = player.x - e.x;
+                    let dy = player.y - e.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist === 0) dist = 1;
+                    
+                    e.x += (dx / dist) * e.speed;
+                    e.y += (dy / dist) * e.speed;
+
+                    let damageRate = selectedPlatform === 'mobile' ? 0.9 : 0.7;
+                    if (dist < player.size + e.size) {
+                        health -= damageRate;
+                        
+                        // EMPUJE ANTI-BLOQUEO: Aplica un retroceso automático para evitar que los enemigos dejen al jugador atrapado en los bordes
+                        player.x -= (dx / dist) * 4;
+                        player.y -= (dy / dist) * 4;
+
+                        if (health <= 0) {
+                            errorCount++;
+                            resetCount++;
+                            alert('¡Has perecido en combate! Reiniciando partida...');
+                            level = 1;
+                            resetLevel();
+                        }
+                    }
+                });
+
+                document.getElementById('hud-points').innerText = points;
+                document.getElementById('hud-level').innerText = level;
+                document.getElementById('hud-score').innerText = `${score}/5`;
+                document.getElementById('hud-correct').innerText = correctAnswers;
+                document.getElementById('hud-errors').innerText = errorCount;
+                document.getElementById('hud-resets').innerText = resetCount;
+                document.getElementById('hud-ammo').innerText = `${ammo}/5`;
+                document.getElementById('hud-health').innerText = `${Math.max(0, Math.floor(health))}%`;
+            }
+
+            function draw() {
+                ctx.fillStyle = '#121212';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                if (activeMedkit) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(activeMedkit.x - 10, activeMedkit.y - 10, 20, 20);
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillRect(activeMedkit.x - 8, activeMedkit.y - 3, 16, 6);
+                    ctx.fillRect(activeMedkit.x - 3, activeMedkit.y - 8, 6, 16);
+                }
+
+                ctx.fillStyle = '#2e8b57';
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffcc00';
+                bullets.forEach(b => {
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                enemies.forEach(e => {
+                    ctx.fillStyle = e.maxHp > 1 ? '#cc2200' : '#a02020';
+                    ctx.beginPath();
+                    ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#500000';
+                    ctx.stroke();
+
+                    if (e.maxHp > 1) {
+                        ctx.fillStyle = '#ffff00';
+                        ctx.font = '9px Courier New';
+                        ctx.fillText(`HP:${e.hp}`, e.x - 12, e.y - 14);
+                    }
+                });
+            }
+
+            function loop() {
+                update();
+                draw();
+                requestAnimationFrame(loop);
+            }
+        });
+    </script>
+</body>
+</html>
